@@ -1,0 +1,9 @@
+{
+  "type": "record",
+  "name": "TickerQuery",
+  "namespace": "com.interview.service_p.model.kafka.avro",
+  "fields": [
+    {"name": "ticker", "type": "string"},
+    {"name": "query", "type": "string"}
+  ]
+}

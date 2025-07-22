@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "TickerDetailPayload",
+  "namespace": "com.interview.service_p.model.kafka.avro",
+  "fields": [
+    {"name": "messageId", "type": "string"},
+    {
+      "name": "tickers",
+      "type": {
+        "type": "array",
+        "items": "com.interview.service_p.model.kafka.avro.TickerQuery"
+      }
+    },
+    {"name": "email", "type": "string"}
+  ]
+}
