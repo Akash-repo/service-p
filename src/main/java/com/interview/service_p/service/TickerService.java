@@ -6,12 +6,16 @@ import com.interview.service_p.config.KafkaProducerProperties;
 import com.interview.service_p.config.RestConfigProperties;
 import com.interview.service_p.config.RestConfigProperties.ApiProviderProperties;
 import com.interview.service_p.entity.TickerStatisticEntity;
-import com.interview.service_p.model.kafka.TickerDetail;
 import com.interview.service_p.model.TickerResponse;
 import com.interview.service_p.model.TickerStatistic;
 import com.interview.service_p.model.fmp.FmpTickerQuoteResponse;
-import com.interview.service_p.model.kafka.TickerDetailPayload;
 import com.interview.service_p.service.mapper.TickerStatisticMapper;
+import com.interview.service_p.service.UniqueIdGenService;
+import com.interview.service_p.model.kafka.TickerDetail;
+
+// NEW: Import Avro-generated classes
+import com.interview.service_p.model.kafka.avro.TickerDetailPayload;
+import com.interview.service_p.model.kafka.avro.TickerQuery; // Avro-generated TickerQuery
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +41,12 @@ public class TickerService {
     private static final Logger log = LoggerFactory.getLogger(TickerService.class);
 
     private final UniqueIdGenService uniqueIdGenService;
-    // KafkaTemplate now uses TickerDetailPayload as its value type
+    // KafkaTemplate now uses Avro-generated TickerDetailPayload as its value type
     private final KafkaTemplate<String, TickerDetailPayload> kafkaTemplate;
     private final KafkaProducerProperties kafkaProducerProperties;
-    private final ObjectMapper objectMapper; // Kept as it's used for other methods
+    // ObjectMapper is no longer needed for Kafka serialization, but might be used for other JSON tasks.
+    // Keeping it for now as it was in your original code.
+    private final ObjectMapper objectMapper;
 
     // Dependencies for Ticker Data Fetching
     private final RedisTickerCacheService redisCacheService;
@@ -51,8 +57,7 @@ public class TickerService {
 
     @Autowired
     public TickerService(UniqueIdGenService uniqueIdGenService,
-                         // KafkaTemplate now uses TickerDetailPayload as its value type
-                         KafkaTemplate<String, TickerDetailPayload> kafkaTemplate,
+                         KafkaTemplate<String, TickerDetailPayload> kafkaTemplate, // Updated generic type
                          KafkaProducerProperties kafkaProducerProperties,
                          ObjectMapper objectMapper,
                          RedisTickerCacheService redisCacheService,
@@ -63,7 +68,7 @@ public class TickerService {
         this.uniqueIdGenService = uniqueIdGenService;
         this.kafkaTemplate = kafkaTemplate;
         this.kafkaProducerProperties = kafkaProducerProperties;
-        this.objectMapper = objectMapper;
+        this.objectMapper = objectMapper; // Keep if other parts of the service use it for non-Kafka JSON
 
         this.redisCacheService = redisCacheService;
         this.dbService = dbService;
@@ -75,15 +80,35 @@ public class TickerService {
         }
     }
 
+    // A helper method to convert your existing TickerDetail model to the Avro TickerDetailPayload
+    // This assumes TickerDetail.java still exists and has getTickers() returning List<com.interview.service_p.model.TickerQuery>
+    // and getEmail() returning String.
+    // We need to map the old TickerQuery to the new Avro TickerQuery.
+    private TickerDetailPayload createAvroTickerDetailPayload(String messageId, TickerDetail tickerDetail) {
+        // Convert List<com.interview.service_p.model.TickerQuery> to List<com.interview.service_p.model.kafka.avro.TickerQuery>
+        List<TickerQuery> avroTickerQueries = tickerDetail.getTickers().stream()
+                .map(tq -> TickerQuery.newBuilder()
+                        .setTicker(tq.ticker()) // Assuming getTicker() method on your old TickerQuery
+                        .setQuery(tq.query())   // Assuming getQuery() method on your old TickerQuery
+                        .build())
+                .collect(Collectors.toList());
+
+        return TickerDetailPayload.newBuilder()
+                .setMessageId(messageId)
+                .setTickers(avroTickerQueries)
+                .setEmail(tickerDetail.getEmail())
+                .build();
+    }
+
+
     // Synchronous Kafka message production
+    // TickerDetail is likely still a JSON POJO from the REST endpoint
     public void initiateTickerAnalysis(TickerDetail tickerDetail) {
         String messageId = uniqueIdGenService.generateUniqueId();
-        // Create the TickerDetailPayload object directly
-        TickerDetailPayload kafkaMessagePayload = new TickerDetailPayload(
-                messageId,
-                tickerDetail.getTickers(), // This is now List<TickerQuery>
-                tickerDetail.getEmail()
-        );
+        // Create the Avro TickerDetailPayload object using the builder
+        TickerDetailPayload kafkaMessagePayload = createAvroTickerDetailPayload(messageId, tickerDetail);
+
+        log.info("Attempting to produce Kafka message with ID: {} to topic '{}'", messageId, kafkaProducerProperties.getTopicName());
 
         int attempt = 0;
         boolean sentSuccessfully = false;
@@ -139,20 +164,15 @@ public class TickerService {
     // Asynchronous Kafka message production
     public void initiateTickerAnalysisAsynchronously(TickerDetail tickerDetail) {
         String messageId = uniqueIdGenService.generateUniqueId();
-        // Create the TickerDetailPayload object directly
-        TickerDetailPayload kafkaMessagePayload = new TickerDetailPayload(
-                messageId,
-                tickerDetail.getTickers(), // This is now List<TickerQuery>
-                tickerDetail.getEmail()
-        );
+        // Create the Avro TickerDetailPayload object using the builder
+        TickerDetailPayload kafkaMessagePayload = createAvroTickerDetailPayload(messageId, tickerDetail);
 
         log.info("Attempting to asynchronously produce Kafka message with ID: {} to main topic '{}'. Request thread will be released immediately.", messageId, kafkaProducerProperties.getTopicName());
 
-        // Note: The 'simulateProducerFailure' logic needs to be updated if it relies on a String in the list.
-        // For TickerQuery, you might check for a specific ticker symbol or query string.
-        boolean simulateProducerFailure = tickerDetail.getTickers() != null &&
-                tickerDetail.getTickers().stream()
-                        .anyMatch(tq -> "PRODUCER_FAIL".equals(tq.ticker()));
+        // Simulate producer failure based on the Avro TickerQuery object
+        boolean simulateProducerFailure = kafkaMessagePayload.getTickers() != null &&
+                kafkaMessagePayload.getTickers().stream()
+                        .anyMatch(tq -> "PRODUCER_FAIL".equals(tq.getTicker())); // Use Avro-generated getter .getTicker()
 
 
         CompletableFuture<SendResult<String, TickerDetailPayload>> future; // Updated value type

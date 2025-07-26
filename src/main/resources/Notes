@@ -1,0 +1,30 @@
+In an Avro schema, doc is an optional field that provides a human-readable description or documentation for the schema itself, a field within the schema, or an enum symbol. It's used for documentation purposes and doesn't affect the serialization or deserialization of the data.
+
+So, yes, it is entirely optional. It's good practice to include it for clarity and maintainability, especially in a production environment where multiple teams or services might interact with the same schemas.Here's an example of how the `doc` field can be used in an Avro schema:
+
+```json
+{
+  "type": "record",
+  "name": "User",
+  "namespace": "com.example",
+  "doc": "A user record containing personal information.",
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "doc": "The name of the user."
+    },
+    {
+      "name": "age",
+      "type": "int",
+      "doc": "The age of the user in years."
+    },
+    {
+      "name": "email",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "The user's email address, which can be null."
+    }
+  ]
+}
+```

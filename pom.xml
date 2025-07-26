@@ -139,6 +139,9 @@
 							<sourceDirectory>${project.basedir}/src/main/resources/avro</sourceDirectory>
 							<outputDirectory>${project.build.directory}/generated-sources/avro</outputDirectory>
 							<fieldVisibility>PRIVATE</fieldVisibility> <!-- Matches Gradle's fieldVisibility -->
+							<imports>
+								<import>${project.basedir}/src/main/resources/avro/TickerQuery.avsc</import>
+							</imports>
 						</configuration>
 					</execution>
 				</executions>
