@@ -1,0 +1,116 @@
+{
+	"info": {
+		"_postman_id": "4eb79f01-1960-4371-86b6-69bdbf891dac",
+		"name": "service-p",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "13545874"
+	},
+	"item": [
+		{
+			"name": "health-check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/health-check",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"health-check"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ticker-analysis",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tickers\": [\n        \"AAPL\",\n        \"GOOGL\",\n        \"MSFT\",\n        \"AMZN\"\n    ],\n    \"email\": \"user@example.com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8083/v1/ticker-analysis-sync",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8083",
+					"path": [
+						"v1",
+						"ticker-analysis-sync"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ticker-analysis-async",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tickers\": [\n        \"AAPL\",\n        \"GOOGL\",\n        \"MSFT\",\n        \"AMZN\"\n    ],\n    \"email\": \"user@example.com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8083/v1/ticker-analysis-aysnc",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8083",
+					"path": [
+						"v1",
+						"ticker-analysis-aysnc"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ticker-statistics",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tickers\": [\n        \"AAPL\",\n        \"META\",\n        \"GOOG\"\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8083/v1/ticker-statistics",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8083",
+					"path": [
+						"v1",
+						"ticker-statistics"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
